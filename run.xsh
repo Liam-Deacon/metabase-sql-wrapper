@@ -1,6 +1,11 @@
-#!/usr/bin/env xonsh
+#!/usr/bin/env python
 
-import subprocess, signal
+import subprocess
+import signal
+import os
+
+from pathlib import Path
+
 
 class Process:
     """
@@ -17,43 +22,41 @@ class Process:
         proc.wait()
 
     def proc_terminate(self, signum, frame):
-        echo @(f'*** CATCH: signum={signum}, stopping the process...')
+        print(f'*** CATCH: signum={signum}, stopping the process...')
         self.proc.terminate()
         self.stop_now = True
 
 if __name__ == '__main__':
-    echo '*** Metabase SQL wrapper [https://github.com/anki-code/metabase-sql-wrapper]'
+    print('*** Metabase SQL wrapper')
 
     metabase_jar = '/app/metabase.jar'
 
-    metabase_db_path = ${...}.get('MB_DB_FILE', '/data/metabase')
-    metabase_db_path = fp'{metabase_db_path}'
+    metabase_db_path = Path(os.environ.get('MB_DB_FILE', '/data/metabase'))
 
-    metabase_db_path_exists = metabase_db_path.exists()
-    if metabase_db_path_exists:
-        echo @(f'*** Metabase DB path: {metabase_db_path}')
+    if metabase_db_path.exists():
+        print(f'*** Metabase DB path: {metabase_db_path}')
     else:
-        mkdir -p @(metabase_db_path)
-        echo @(f'*** Metabase DB path created: {metabase_db_path}')
+        metabase_db_path.parent.mkdir(exists_ok=True, parents=True)
+        print(f'*** Metabase DB path created: {metabase_db_path}')
 
     metabase_db_file = metabase_db_path / metabase_db_path.name
 
-    init_sql_file = ${...}.get('MB_DB_INIT_SQL_FILE')
+    init_sql_file = Path(os.environ.get('MB_DB_INIT_SQL_FILE', 'db.h2'))
 
-    if pf'{init_sql_file}'.exists():
-        if metabase_db_path_exists:
-            echo @(f'*** Database path {metabase_db_path} exists, SKIP creating database from {init_sql_file}')
+    if init_sql_file.exists():
+        if metabase_db_path.exists():
+            print(f'*** Database path {metabase_db_path} exists, SKIP creating database from {init_sql_file}')
         else:
-            echo @(f'*** Create database {metabase_db_file} from {init_sql_file}')
-            java -cp @(metabase_jar) org.h2.tools.RunScript -url jdbc:h2:@(metabase_db_file) -script @(init_sql_file)
-            echo '*** Creating DONE'
+            print(f'*** Create database {metabase_db_file} from {init_sql_file}')
+            Process(f"java -cp {metabase_jar} org.h2.tools.RunScript -url jdbc:h2:{metabase_db_file} -script {init_sql_file}")
+            print('*** Creating DONE')
     else:
-        echo @(f'*** MB_DB_INIT_SQL_FILE {init_sql_file} not found, SKIP')
+        print(f'*** MB_DB_INIT_SQL_FILE {init_sql_file} not found, SKIP')
 
     p = Process('/app/run_metabase.sh')
 
-    save_sql_file = ${...}.get('MB_DB_SAVE_TO_SQL_FILE')
+    save_sql_file = os.environ.get('MB_DB_SAVE_TO_SQL_FILE')
     if save_sql_file:
-        echo @(f'*** Saving database {metabase_db_file} to {save_sql_file}')
-        java -cp @(metabase_jar) org.h2.tools.Script -url jdbc:h2:@(metabase_db_file) -script @(save_sql_file)
-        echo @('*** Saving DONE')
+        print(f'*** Saving database {metabase_db_file} to {save_sql_file}')
+        Process(f"java -cp {metabase_jar} org.h2.tools.Script -url jdbc:h2:{metabase_db_file} -script {save_sql_file}")
+        print('*** Saving DONE')
