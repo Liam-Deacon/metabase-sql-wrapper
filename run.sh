@@ -36,7 +36,7 @@ if __name__ == '__main__':
     if metabase_db_path.exists():
         print(f'*** Metabase DB path: {metabase_db_path}')
     else:
-        metabase_db_path.parent.mkdir(exists_ok=True, parents=True)
+        metabase_db_path.parent.mkdir(exist_ok=True, parents=True)
         print(f'*** Metabase DB path created: {metabase_db_path}')
 
     metabase_db_file = metabase_db_path / metabase_db_path.name
