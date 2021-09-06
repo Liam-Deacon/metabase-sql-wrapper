@@ -1,6 +1,6 @@
-FROM metabase/metabase:v0.36.6
-RUN apk update && apk add --update py-pip && pip install xonsh==0.9.24
-ADD run.xsh /
-RUN chmod +x run.xsh
-ENTRYPOINT ["/usr/bin/xonsh", "/run.xsh"]
+ARG METABASE_VERSION=latest
+FROM metabase/metabase:$METABASE_VERSION
+ADD run.sh /
+RUN chmod +x run.sh
+ENTRYPOINT ["/usr/bin/python3", "/run.sh"]
 
